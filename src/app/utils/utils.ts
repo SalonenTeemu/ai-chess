@@ -200,3 +200,8 @@ const minimax = (
     return minEval;
   }
 };
+
+export const playSound = function (sound: string) {
+  const audio = new Audio(`/audio/${sound}.mp3`);
+  audio.play();
+};

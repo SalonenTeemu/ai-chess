@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Chess, WHITE, BLACK } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { minimaxRoot } from "../utils/utils";
+import { minimaxRoot, playSound } from "../utils/utils";
 
 export default function ChessGame() {
   const [game, setGame] = useState(new Chess());
@@ -41,10 +41,24 @@ export default function ChessGame() {
       const gameCopy = new Chess(game.fen());
       try {
         const result = gameCopy.move(move);
+        if (!gameCopy.isGameOver()) {
+          if (gameCopy.inCheck()) {
+            playSound("move-check");
+          } else if (result?.promotion) {
+            playSound("promote");
+          } else if (result?.captured) {
+            playSound("capture");
+          } else if (result?.san === "O-O" || result?.san === "O-O-O") {
+            playSound("castle");
+          } else {
+            playSound("move-self");
+          }
+        }
         setGame(gameCopy);
         setHistory([...history, gameCopy.fen()]);
         return result;
       } catch (error) {
+        playSound("illegal");
         setNotification({ message: "Invalid move.", type: "negative" });
         setTimeout(() => setNotification({ message: "", type: "" }), 3000);
         return false;
@@ -129,6 +143,7 @@ export default function ChessGame() {
     } else {
       setStatus("Game over.");
     }
+    playSound("game-end");
   };
 
   const handleWin = (gameState: Chess) => {
@@ -144,6 +159,7 @@ export default function ChessGame() {
         type: playerColor === turnLowerCase ? "positive" : "negative",
       });
     }
+    playSound("game-end");
   };
 
   const handleInProgress = (gameState: Chess) => {
