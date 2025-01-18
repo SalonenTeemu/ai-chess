@@ -12,6 +12,10 @@ export default function ChessGame() {
   const [difficulty, setDifficulty] = useState(2); // 1: Easy, 2: Medium, 3: Hard
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white"); // Default to white
   const [gameStarted, setGameStarted] = useState(false); // Track if the game has started
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: string;
+  }>({ message: "", type: "" }); // Notification with type
 
   const updateBoardWidth = () => {
     if (typeof window !== "undefined") {
@@ -35,12 +39,16 @@ export default function ChessGame() {
   const makeAMove = useCallback(
     (move: any) => {
       const gameCopy = new Chess(game.fen());
-      const result = gameCopy.move(move);
-      if (result) {
+      try {
+        const result = gameCopy.move(move);
         setGame(gameCopy);
         setHistory([...history, gameCopy.fen()]);
+        return result;
+      } catch (error) {
+        setNotification({ message: "Invalid move.", type: "negative" });
+        setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        return false;
       }
-      return result;
     },
     [game, history]
   );
@@ -81,10 +89,70 @@ export default function ChessGame() {
   };
 
   const updateStatus = (gameState: Chess) => {
-    if (gameState.isCheckmate()) setStatus("Checkmate! Game over.");
-    else if (gameState.isDraw()) setStatus("It's a draw.");
-    else if (gameState.isCheck()) setStatus("Check!");
-    else setStatus("Game in progress.");
+    if (gameState.isGameOver()) {
+      if (gameState.isDraw()) {
+        handleDraw(gameState);
+      } else {
+        handleWin(gameState);
+      }
+    } else {
+      handleInProgress(gameState);
+    }
+    setTimeout(() => setNotification({ message: "", type: "" }), 3000); // Hide notification after 3 seconds
+  };
+
+  const handleDraw = (gameState: Chess) => {
+    if (gameState.isDrawByFiftyMoves()) {
+      setStatus("Draw by 50-move rule.");
+      setNotification({
+        message: "Game is drawn by 50-move rule.",
+        type: "neutral",
+      });
+    } else if (gameState.isInsufficientMaterial()) {
+      setStatus("Draw by insufficient material.");
+      setNotification({
+        message: "Game is drawn by insufficient material.",
+        type: "neutral",
+      });
+    } else if (gameState.isThreefoldRepetition()) {
+      setStatus("Draw by repetition.");
+      setNotification({
+        message: "Game is drawn by repetition.",
+        type: "neutral",
+      });
+    } else if (gameState.isStalemate()) {
+      setStatus("Stalemate.");
+      setNotification({
+        message: "Game is a stalemate.",
+        type: "neutral",
+      });
+    } else {
+      setStatus("Game over.");
+    }
+  };
+
+  const handleWin = (gameState: Chess) => {
+    const turn = gameState.turn() === WHITE ? "Black" : "White";
+    const turnLowerCase = turn.toLowerCase();
+    if (gameState.isCheckmate()) {
+      setStatus("Checkmate. " + turn + " wins.");
+      setNotification({
+        message:
+          playerColor === turnLowerCase
+            ? "Checkmate. You win!"
+            : "Checkmate. " + turn + " wins.",
+        type: playerColor === turnLowerCase ? "positive" : "negative",
+      });
+    }
+  };
+
+  const handleInProgress = (gameState: Chess) => {
+    const turn = gameState.turn() === WHITE ? "White" : "Black";
+    if (gameState.inCheck()) {
+      setStatus("Check. " + turn + " is in check.");
+    } else {
+      setStatus("Game in progress. " + turn + " to move.");
+    }
   };
 
   useEffect(() => {
@@ -129,13 +197,33 @@ export default function ChessGame() {
       setGame(newGame);
       setHistory([...history]);
     } else {
-      setStatus("No moves to undo.");
+      setNotification({ message: "Cannot undo further.", type: "negative" });
+      setTimeout(() => setNotification({ message: "", type: "" }), 3000);
     }
   }, [history]);
 
+  const getNotificationStyle = () => {
+    switch (notification.type) {
+      case "positive":
+        return "bg-green-500 text-slate-50";
+      case "neutral":
+        return "bg-yellow-500 text-slate-50";
+      case "negative":
+        return "bg-red-500 text-slate-50";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-50 selection:bg-lime-500">
-      <h1 className="text-4xl font-bold mb-6">Play vs Computer</h1>
+      <h1 className="text-4xl font-bold mb-3">Play vs Computer</h1>
+      {notification.message && (
+        <div
+          className={`absolute top-0 left-0 right-0 text-center p-2 font-semibold ${getNotificationStyle()}`}>
+          {notification.message}
+        </div>
+      )}
       {!gameStarted ? (
         <div className="flex flex-col items-center">
           <p className="text-lg mb-4">Choose your color to start:</p>
@@ -154,7 +242,7 @@ export default function ChessGame() {
         </div>
       ) : (
         <>
-          <div className="flex space-x-4 mb-4">
+          <div className="flex space-x-4 mb-3">
             <button
               className={`px-4 py-2 rounded-md shadow ${
                 difficulty === 1
@@ -196,8 +284,8 @@ export default function ChessGame() {
               customBoardStyle={{ borderRadius: "4px" }}
             />
           </div>
-          <p className="mt-4 text-lg">{status}</p>
-          <div className="mt-4 flex space-x-4">
+          <p className="mt-2 text-lg">{status}</p>
+          <div className="mt-3 flex space-x-4">
             <button
               className="bg-lime-500 text-slate-950 px-4 py-2 rounded-md shadow hover:bg-lime-600"
               onClick={() => resetGame()}>
