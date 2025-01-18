@@ -3,12 +3,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { Chess, WHITE, BLACK } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { minimaxRoot, playSound } from "../utils/utils";
+import { minimaxRoot, getNotificationStyle, playSound } from "../utils/utils";
 
+/**
+ * The ChessGame component.
+ *
+ * @returns The ChessGame component.
+ */
 export default function ChessGame() {
-  const [game, setGame] = useState(new Chess());
-  const [status, setStatus] = useState("Game in progress.");
-  const [history, setHistory] = useState([game.fen()]);
+  const [game, setGame] = useState(new Chess()); // The game state
+  const [status, setStatus] = useState("Game in progress."); // The game status to show
+  const [history, setHistory] = useState([game.fen()]); // History of moves
   const [difficulty, setDifficulty] = useState(2); // 1: Easy, 2: Medium, 3: Hard
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white"); // Default to white
   const [gameStarted, setGameStarted] = useState(false); // Track if the game has started
@@ -17,6 +22,11 @@ export default function ChessGame() {
     type: string;
   }>({ message: "", type: "" }); // Notification with type
 
+  /**
+   * Updates the width of the chessboard based on the window size.
+   *
+   * @returns The width of the chessboard based on the window size.
+   */
   const updateBoardWidth = () => {
     if (typeof window !== "undefined") {
       return window.innerWidth * 0.37;
@@ -36,6 +46,9 @@ export default function ChessGame() {
     };
   }, []);
 
+  /**
+   * Makes a move on the board, updates the game state, history and plays a sound effect.
+   */
   const makeAMove = useCallback(
     (move: any) => {
       const gameCopy = new Chess(game.fen());
@@ -67,6 +80,9 @@ export default function ChessGame() {
     [game, history]
   );
 
+  /**
+   * Makes a move for the AI based on the difficulty level.
+   */
   const makeAIMove = useCallback(
     (gameState: Chess) => {
       if (gameState.isGameOver()) return;
@@ -83,11 +99,24 @@ export default function ChessGame() {
     [makeAMove, playerColor]
   );
 
+  /**
+   * Finds the best move for the AI using the minimax algorithm.
+   *
+   * @param game The game state
+   * @returns The best move for the AI
+   */
   const getBestMove = (game: Chess) => {
     if (game.isGameOver()) return;
     return minimaxRoot(difficulty, game, playerColor === "white");
   };
 
+  /**
+   * Makes a move on the board when a piece is dropped by the player.
+   *
+   * @param sourceSquare The source square of the piece
+   * @param targetSquare The target square of the piece
+   * @returns The result of the move (illegal move or not)
+   */
   const onDrop = (sourceSquare: string, targetSquare: string) => {
     if (game.turn() !== WHITE && playerColor === "white") return false;
     if (game.turn() !== BLACK && playerColor === "black") return false;
@@ -102,6 +131,11 @@ export default function ChessGame() {
     return true;
   };
 
+  /**
+   * Updates the game status based on the current game state.
+   *
+   * @param gameState The current game state
+   */
   const updateStatus = (gameState: Chess) => {
     if (gameState.isGameOver()) {
       if (gameState.isDraw()) {
@@ -115,6 +149,11 @@ export default function ChessGame() {
     setTimeout(() => setNotification({ message: "", type: "" }), 3000); // Hide notification after 3 seconds
   };
 
+  /**
+   * Handles the draw scenarios.
+   *
+   * @param gameState The current game state
+   */
   const handleDraw = (gameState: Chess) => {
     if (gameState.isDrawByFiftyMoves()) {
       setStatus("Draw by 50-move rule.");
@@ -146,6 +185,11 @@ export default function ChessGame() {
     playSound("game-end");
   };
 
+  /**
+   * Handles the win scenarios.
+   *
+   * @param gameState The current game state
+   */
   const handleWin = (gameState: Chess) => {
     const turn = gameState.turn() === WHITE ? "Black" : "White";
     const turnLowerCase = turn.toLowerCase();
@@ -162,6 +206,11 @@ export default function ChessGame() {
     playSound("game-end");
   };
 
+  /**
+   * Handles the game in progress scenarios.
+   *
+   * @param gameState The current game state
+   */
   const handleInProgress = (gameState: Chess) => {
     const turn = gameState.turn() === WHITE ? "White" : "Black";
     if (gameState.inCheck()) {
@@ -180,11 +229,16 @@ export default function ChessGame() {
       ) {
         setTimeout(() => {
           makeAIMove(game);
-        }, 500);
+        }, 1000);
       }
     }
   }, [game, gameStarted, makeAIMove, playerColor]);
 
+  /**
+   * Starts a new game with the selected color.
+   *
+   * @param color The color of the player
+   */
   const startNewGame = (color: "white" | "black") => {
     const newGame = new Chess();
     setPlayerColor(color);
@@ -196,14 +250,20 @@ export default function ChessGame() {
     if (color === "black") {
       setTimeout(() => {
         makeAIMove(newGame);
-      }, 500);
+      }, 1000);
     }
   };
 
+  /**
+   * Resets the game to allow user choose color again.
+   */
   const resetGame = () => {
     setGameStarted(false);
   };
 
+  /**
+   * Undoes the last move made by the player and AI.
+   */
   const undoMove = useCallback(() => {
     if (history.length > 2) {
       history.pop();
@@ -218,25 +278,14 @@ export default function ChessGame() {
     }
   }, [history]);
 
-  const getNotificationStyle = () => {
-    switch (notification.type) {
-      case "positive":
-        return "bg-green-500 text-slate-50";
-      case "neutral":
-        return "bg-yellow-500 text-slate-50";
-      case "negative":
-        return "bg-red-500 text-slate-50";
-      default:
-        return "";
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-50 selection:bg-lime-500">
       <h1 className="text-4xl font-bold mb-3">Play vs Computer</h1>
       {notification.message && (
         <div
-          className={`absolute top-0 left-0 right-0 text-center p-2 font-semibold ${getNotificationStyle()}`}>
+          className={`absolute top-0 left-0 right-0 text-center p-2 font-semibold ${getNotificationStyle(
+            notification
+          )}`}>
           {notification.message}
         </div>
       )}
