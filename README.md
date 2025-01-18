@@ -1,4 +1,4 @@
-# chess
+# ai-chess
 
 This is a chess application built with **Next.js**, designed for users to play against an AI opponent. The AI is powered by the minimax algorithm with alpha-beta pruning. The AI implementation is based on resources by Lauri Hartikka in this [freeCodeCamp article](https://www.freecodecamp.org/news/simple-chess-ai-step-by-step-1d55a9266977/) and in this [GitHub repository](https://github.com/lhartikk/simple-chess-ai).
 
@@ -21,6 +21,8 @@ This is a chess application built with **Next.js**, designed for users to play a
 ---
 
 ## Running the application
+
+The application can also be tested on my [homepage](https://salonenteemu.fi/projects/ai-chess) as it is one of the projects there.
 
 Install the required dependencies with: `npm install`
 
