@@ -3,305 +3,135 @@
 import { useState, useCallback, useEffect } from "react";
 import { Chess, WHITE, BLACK } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import { minimaxRoot } from "../utils/utils";
 
-const ChessGame = () => {
+export default function ChessGame() {
   const [game, setGame] = useState(new Chess());
   const [status, setStatus] = useState("Game in progress.");
+  const [history, setHistory] = useState([game.fen()]);
 
-  var reverseArray = function (array: any) {
-    return array.slice().reverse();
-  };
-
-  var pawnEvalWhite = [
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
-    [1.0, 1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 1.0],
-    [0.5, 0.5, 1.0, 2.5, 2.5, 1.0, 0.5, 0.5],
-    [0.0, 0.0, 0.0, 2.0, 2.0, 0.0, 0.0, 0.0],
-    [0.5, -0.5, -1.0, 0.0, 0.0, -1.0, -0.5, 0.5],
-    [0.5, 1.0, 1.0, -2.0, -2.0, 1.0, 1.0, 0.5],
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-  ];
-
-  var pawnEvalBlack = reverseArray(pawnEvalWhite);
-
-  var knightEval = [
-    [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-    [-4.0, -2.0, 0.0, 0.0, 0.0, 0.0, -2.0, -4.0],
-    [-3.0, 0.0, 1.0, 1.5, 1.5, 1.0, 0.0, -3.0],
-    [-3.0, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3.0],
-    [-3.0, 0.0, 1.5, 2.0, 2.0, 1.5, 0.0, -3.0],
-    [-3.0, 0.5, 1.0, 1.5, 1.5, 1.0, 0.5, -3.0],
-    [-4.0, -2.0, 0.0, 0.5, 0.5, 0.0, -2.0, -4.0],
-    [-5.0, -4.0, -3.0, -3.0, -3.0, -3.0, -4.0, -5.0],
-  ];
-
-  var bishopEvalWhite = [
-    [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-    [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0, -1.0],
-    [-1.0, 0.5, 0.5, 1.0, 1.0, 0.5, 0.5, -1.0],
-    [-1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, -1.0],
-    [-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0],
-    [-1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, -1.0],
-    [-2.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -2.0],
-  ];
-
-  var bishopEvalBlack = reverseArray(bishopEvalWhite);
-
-  var rookEvalWhite = [
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    [0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5],
-    [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-    [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-    [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-    [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-    [-0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5],
-    [0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
-  ];
-
-  var rookEvalBlack = reverseArray(rookEvalWhite);
-
-  var evalQueen = [
-    [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-    [-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-    [-0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-    [0.0, 0.0, 0.5, 0.5, 0.5, 0.5, 0.0, -0.5],
-    [-1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, -1.0],
-    [-1.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, -1.0],
-    [-2.0, -1.0, -1.0, -0.5, -0.5, -1.0, -1.0, -2.0],
-  ];
-
-  var kingEvalWhite = [
-    [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-    [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-    [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-    [-3.0, -4.0, -4.0, -5.0, -5.0, -4.0, -4.0, -3.0],
-    [-2.0, -3.0, -3.0, -4.0, -4.0, -3.0, -3.0, -2.0],
-    [-1.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -1.0],
-    [2.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0],
-    [2.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0],
-  ];
-
-  var kingEvalBlack = reverseArray(kingEvalWhite);
-
-  var getPieceValue = function (piece: any, x: number, y: number) {
-    if (piece === null) {
-      return 0;
+  const updateBoardWidth = () => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth * 0.37;
     }
-    var getAbsoluteValue = function (
-      piece: any,
-      isWhite: boolean,
-      x: number,
-      y: number
-    ) {
-      if (piece.type === "p") {
-        return 10 + (isWhite ? pawnEvalWhite[y][x] : pawnEvalBlack[y][x]);
-      } else if (piece.type === "r") {
-        return 50 + (isWhite ? rookEvalWhite[y][x] : rookEvalBlack[y][x]);
-      } else if (piece.type === "n") {
-        return 30 + knightEval[y][x];
-      } else if (piece.type === "b") {
-        return 30 + (isWhite ? bishopEvalWhite[y][x] : bishopEvalBlack[y][x]);
-      } else if (piece.type === "q") {
-        return 90 + evalQueen[y][x];
-      } else if (piece.type === "k") {
-        return 900 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
-      }
-      throw "Unknown piece type: " + piece.type;
+    return 600;
+  };
+  const [boardWidth, setBoardWidth] = useState(updateBoardWidth());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setBoardWidth(updateBoardWidth());
     };
 
-    var absoluteValue = getAbsoluteValue(piece, piece.color === "w", x, y);
-    return piece.color === "w" ? absoluteValue : -absoluteValue;
-  };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
-  var evaluateBoard = function (game: Chess) {
-    const board: any = game.board();
-    var totalEvaluation = 0;
-    for (var i = 0; i < 8; i++) {
-      for (var j = 0; j < 8; j++) {
-        totalEvaluation = totalEvaluation + getPieceValue(board[i][j], i, j);
-      }
-    }
-    return totalEvaluation;
-  };
-
-  var minimaxRoot = (depth: number, game: Chess, maximizingPlayer: boolean) => {
-    const possibleMoves = game.moves();
-    let bestMove = -9999;
-    let bestMoveFound;
-
-    for (let i = 0; i < possibleMoves.length; i++) {
-      const newGame = new Chess(game.fen()); // Clone the game state
-      newGame.move(possibleMoves[i]);
-
-      const value = minimax(
-        depth - 1,
-        newGame,
-        -10000,
-        10000,
-        !maximizingPlayer
-      );
-
-      if (value > bestMove) {
-        bestMove = value;
-        bestMoveFound = possibleMoves[i];
-      }
-    }
-    return bestMoveFound;
-  };
-
-  var minimax = (
-    depth: number,
-    game: Chess,
-    alpha: number,
-    beta: number,
-    maximizingPlayer: boolean
-  ): number => {
-    if (depth === 0 || game.isGameOver()) {
-      return -evaluateBoard(game);
-    }
-
-    const possibleMoves = game.moves();
-    if (maximizingPlayer) {
-      let maxEval = -9999;
-      for (let i = 0; i < possibleMoves.length; i++) {
-        const newGame = new Chess(game.fen()); // Clone the game state
-        newGame.move(possibleMoves[i]);
-
-        const evalValue = minimax(
-          depth - 1,
-          newGame,
-          alpha,
-          beta,
-          !maximizingPlayer
-        );
-
-        maxEval = Math.max(maxEval, evalValue);
-        alpha = Math.max(alpha, maxEval);
-
-        if (beta <= alpha) {
-          break;
-        }
-      }
-      return maxEval;
-    } else {
-      let minEval = 9999;
-      for (let i = 0; i < possibleMoves.length; i++) {
-        const newGame = new Chess(game.fen()); // Clone the game state
-        newGame.move(possibleMoves[i]);
-
-        const evalValue = minimax(
-          depth - 1,
-          newGame,
-          alpha,
-          beta,
-          !maximizingPlayer
-        );
-
-        minEval = Math.min(minEval, evalValue);
-        beta = Math.min(beta, minEval);
-
-        if (beta <= alpha) {
-          break;
-        }
-      }
-      return minEval;
-    }
-  };
-
-  // Function to make a move and update the state
   const makeAMove = useCallback(
     (move: any) => {
-      console.log(move);
-      const gameCopy = new Chess(game.fen()); // Clone the current game state
-      const result = gameCopy.move(move); // Attempt the move
+      const gameCopy = new Chess(game.fen());
+      const result = gameCopy.move(move);
       if (result) {
-        setGame(gameCopy); // Update the game state if the move was valid
+        setGame(gameCopy);
+        setHistory([...history, gameCopy.fen()]);
       }
       return result;
     },
-    [game]
+    [game, history]
   );
 
-  // Function to make the best AI move
   const makeAIMove = useCallback(
     (gameState: Chess) => {
       if (gameState.isGameOver()) return;
+      if (gameState.turn() !== BLACK) return;
 
-      if (gameState.turn() !== BLACK) return; // AI only plays when it's black's turn
-
-      const possibleMoves = gameState.moves();
-      if (possibleMoves.length === 0) return;
-
-      var bestMove: any = getBestMove(game);
-
-      // Make the best move found
+      const bestMove = getBestMove(gameState);
       makeAMove(bestMove);
     },
     [makeAMove]
   );
 
-  var getBestMove = function (game: Chess) {
-    if (game.isGameOver()) {
-      return;
-    }
-    var depth = 3;
-
-    console.log(game);
-    var bestMove = minimaxRoot(depth, game, true);
-    return bestMove;
+  const getBestMove = (game: Chess) => {
+    if (game.isGameOver()) return;
+    const depth = 3;
+    return minimaxRoot(depth, game, true);
   };
 
-  // Handle piece drop by the player
   const onDrop = (sourceSquare: string, targetSquare: string) => {
-    // Only allow moves if it's the player's (white's) turn
-    if (game.turn() !== WHITE) {
-      return false;
-    }
+    if (game.turn() !== WHITE) return false;
 
     const move = makeAMove({
       from: sourceSquare,
       to: targetSquare,
-      promotion: "q", // Automatically promote to a queen
+      promotion: "q",
     });
 
-    // Illegal move
     if (!move) return false;
-
     return true;
   };
 
-  // Update the game's status (Checkmate, Draw, Check, etc.)
   const updateStatus = (gameState: Chess) => {
-    if (gameState.isCheckmate()) {
-      setStatus("Checkmate! Game over.");
-    } else if (gameState.isDraw()) {
-      setStatus("It's a draw.");
-    } else if (gameState.isCheck()) {
-      setStatus("Check!");
-    } else {
-      setStatus("Game in progress.");
-    }
+    if (gameState.isCheckmate()) setStatus("Checkmate! Game over.");
+    else if (gameState.isDraw()) setStatus("It's a draw.");
+    else if (gameState.isCheck()) setStatus("Check!");
+    else setStatus("Game in progress.");
   };
 
-  // Trigger AI move after the player's move
   useEffect(() => {
+    updateStatus(game);
     if (game.turn() === BLACK) {
       setTimeout(() => {
         makeAIMove(game);
-      }, 500); // AI takes a little time after the player's move
+      }, 500);
     }
   }, [game, makeAIMove]);
 
+  const resetGame = () => {
+    const newGame = new Chess();
+    setGame(newGame);
+    setHistory([newGame.fen()]);
+    setStatus("Game in progress.");
+  };
+
+  const undoMove = useCallback(() => {
+    if (history.length > 2) {
+      history.pop();
+      history.pop();
+      const previousFen = history[history.length - 1];
+      const newGame = new Chess(previousFen);
+      setGame(newGame);
+      setHistory([...history]);
+    } else {
+      setStatus("No moves to undo.");
+    }
+  }, [history]);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Play Chess</h1>
-      <Chessboard position={game.fen()} onPieceDrop={onDrop} />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-50 selection:bg-lime-500">
+      <h1 className="text-4xl font-bold mb-6">Play vs Computer</h1>
+      <div className="shadow-lg p-2 rounded-md">
+        <Chessboard
+          position={game.fen()}
+          onPieceDrop={onDrop}
+          boardWidth={boardWidth}
+          customBoardStyle={{ borderRadius: "4px" }}
+        />
+      </div>
       <p className="mt-4 text-lg">{status}</p>
+      <div className="mt-4 flex space-x-4">
+        <button
+          className="bg-lime-500 text-slate-950 px-4 py-2 rounded-md shadow hover:bg-lime-600"
+          onClick={resetGame}>
+          New Game
+        </button>
+        <button
+          className="bg-yellow-500 text-slate-950 px-4 py-2 rounded-md shadow hover:bg-yellow-600"
+          onClick={undoMove}>
+          Undo
+        </button>
+      </div>
     </div>
   );
-};
-
-export default ChessGame;
+}
