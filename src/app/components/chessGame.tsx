@@ -283,7 +283,7 @@ export default function ChessGame() {
       <h1 className="text-4xl font-bold mb-3">Play vs Computer</h1>
       {notification.message && (
         <div
-          className={`absolute top-0 left-0 right-0 text-center p-2 font-semibold ${getNotificationStyle(
+          className={`absolute top-0 left-0 right-0 text-center p-5 font-semibold ${getNotificationStyle(
             notification
           )}`}>
           {notification.message}
@@ -345,6 +345,7 @@ export default function ChessGame() {
                 (playerColor === "white" && game.turn() === WHITE) ||
                 (playerColor === "black" && game.turn() === BLACK)
               }
+              autoPromoteToQueen={true}
               boardOrientation={playerColor}
               customBoardStyle={{ borderRadius: "4px" }}
             />
