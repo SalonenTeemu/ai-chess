@@ -146,7 +146,7 @@ export default function ChessGame() {
     } else {
       handleInProgress(gameState);
     }
-    setTimeout(() => setNotification({ message: "", type: "" }), 3000); // Hide notification after 3 seconds
+    setTimeout(() => setNotification({ message: "", type: "" }), 3000);
   };
 
   /**
@@ -291,7 +291,7 @@ export default function ChessGame() {
       )}
       {!gameStarted ? (
         <div className="flex flex-col items-center">
-          <p className="text-lg mb-4">Choose your color to start:</p>
+          <p className="text-lg mb-4">Choose your color:</p>
           <div className="flex space-x-4">
             <button
               className="bg-lime-500 text-slate-950 px-4 py-2 rounded-md shadow hover:bg-lime-600"

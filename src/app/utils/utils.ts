@@ -146,6 +146,7 @@ export const getPieceValue = function (piece: any, x: number, y: number) {
       return 900 + (isWhite ? kingEvalWhite[y][x] : kingEvalBlack[y][x]);
     } else {
       console.log("Unknown piece type: " + piece.type);
+      return 0;
     }
   };
 
@@ -188,7 +189,7 @@ export const minimaxRoot = (
   let bestMoveFound;
 
   for (let i = 0; i < possibleMoves.length; i++) {
-    const newGame = new Chess(game.fen()); // Clone the game state
+    const newGame = new Chess(game.fen());
     newGame.move(possibleMoves[i]);
 
     const value = minimax(depth - 1, newGame, -10000, 10000, !maximizingPlayer);
@@ -226,7 +227,7 @@ const minimax = (
   if (maximizingPlayer) {
     let maxEval = -9999;
     for (let i = 0; i < possibleMoves.length; i++) {
-      const newGame = new Chess(game.fen()); // Clone the game state
+      const newGame = new Chess(game.fen());
       newGame.move(possibleMoves[i]);
 
       const evalValue = minimax(
@@ -248,7 +249,7 @@ const minimax = (
   } else {
     let minEval = 9999;
     for (let i = 0; i < possibleMoves.length; i++) {
-      const newGame = new Chess(game.fen()); // Clone the game state
+      const newGame = new Chess(game.fen());
       newGame.move(possibleMoves[i]);
 
       const evalValue = minimax(
